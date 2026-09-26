@@ -24,6 +24,12 @@ description: changes to scheduling or playout need to preserve it.
   panel keeps it, previews with it, and every player loads that same file.
 
 
+## About
+
+52Hertz is a deterministic, self-hosted radio system. Instead of keeping a playout server running continuously, it derives what should be on air from published station state plus a shared clock. The full edition adds a PHP/SQLite station manager, programme-day scheduling, immutable broadcast snapshots, a public player, optional Icecast-compatible origin streaming, and deployment/release tooling around that core model.
+
+
+
 ## Companion projects
 
 - [52Hertz Lite](https://github.com/pournasseh/52hertz-lite) — the static-hosting version: no PHP and no database.
