@@ -2,6 +2,8 @@
 
 # 52Hertz
 
+[![CI](https://github.com/pournasseh/52hertz/actions/workflows/ci.yml/badge.svg)](https://github.com/pournasseh/52hertz/actions/workflows/ci.yml)
+
 Free, open-source radio for people and communities who need an affordable way
 to be heard. It is designed to run on ordinary low-cost PHP hosting, without a
 continuous playout server or a paid platform.
