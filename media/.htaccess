@@ -1,0 +1,25 @@
+# Station audio, served to players on any origin.
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Accept-Ranges "bytes"
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# Uploads land here, and this directory is inside the document root. The
+# upload path already refuses anything but an audio extension; this is the
+# second, independent check, because one of the two will eventually be
+# misconfigured. Nothing here is ever handed to an interpreter.
+<FilesMatch "\.(php|phps|phtml|phar|inc|cgi|pl|py|rb|sh|htm|html|xhtml|svg|shtml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+RemoveHandler .php .phps .phtml .phar .cgi .pl .py
+RemoveType .php .phps .phtml .phar
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

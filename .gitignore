@@ -1,0 +1,16 @@
+# Runtime state and private content
+/var/*
+!/var/.htaccess
+/media/*
+!/media/.htaccess
+
+# Local visual checks and logs
+/shots/
+/dist/
+*.log
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

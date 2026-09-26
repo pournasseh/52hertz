@@ -1,0 +1,10 @@
+# The shared engine. Players on other domains load these modules directly,
+# so they must answer cross-origin requests. Read-only, and public by design.
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+<FilesMatch "\.js$">
+    ForceType text/javascript
+</FilesMatch>

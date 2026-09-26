@@ -1,0 +1,18 @@
+# Translations are public by nature: the panel reads them from disk and the
+# player is handed the words it needs, so nothing here has to be fetched over
+# HTTP. Refusing everything but .json matters because this folder invites
+# drop-ins: a .php file arriving here, from a stranger or by mistake, must be
+# inert and never a program this server agrees to run.
+<IfModule mod_authz_core.c>
+    Require all denied
+    <FilesMatch "\.json$">
+        Require all granted
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+    <FilesMatch "\.json$">
+        Allow from all
+    </FilesMatch>
+</IfModule>

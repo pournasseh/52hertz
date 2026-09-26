@@ -1,0 +1,34 @@
+# The panel is one PHP entry point plus three public directories: engine,
+# media and players. Station JSON and PWA metadata are PHP responses.
+Options -Indexes
+DirectoryIndex index.php index.html
+
+# Logs, database copies and ad-hoc backups must never become downloads just
+# because somebody placed one beside index.php while diagnosing or upgrading.
+<FilesMatch "(?i)(^\.env(?:\..*)?$|\.(?:log|sqlite|sqlite3|db|bak|sql|zip|tar|tgz|gz)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# One player implementation, with a stable human address for every station.
+# The no-trailing-slash form deliberately behaves like a file URL, so the
+# shared player's relative CSS and scripts still resolve from player/.
+# Optional: without mod_rewrite every one of these has a plain form
+# (player/?station=<id>, index.php?p=...), and the panel hands those out.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^streams/([a-z0-9]+(?:-[a-z0-9]+)*)\.mp3$ index.php?p=stream&id=$1 [L,QSA]
+    RewriteRule ^stations/([a-z0-9]+(?:-[a-z0-9]+)*)/feed\.json$ index.php?p=station-feed&id=$1 [L]
+    RewriteRule ^stations/([a-z0-9]+(?:-[a-z0-9]+)*)/manifest\.webmanifest$ index.php?p=station-manifest&id=$1 [L]
+    RewriteRule ^stations/([a-z0-9]+(?:-[a-z0-9]+)*)/icon-192\.png$ index.php?p=station-icon&id=$1&size=192 [L]
+    RewriteRule ^stations/([a-z0-9]+(?:-[a-z0-9]+)*)/icon-512\.png$ index.php?p=station-icon&id=$1&size=512 [L]
+    RewriteRule ^stations/([a-z0-9]+(?:-[a-z0-9]+)*)/icon-maskable-512\.png$ index.php?p=station-icon&id=$1&size=512&maskable=1 [L]
+    RewriteCond %{REQUEST_URI} ^(.*/player/[a-z0-9]+(?:-[a-z0-9]+)*)/$
+    RewriteRule ^player/[a-z0-9]+(?:-[a-z0-9]+)*/$ %1 [R=308,L,NE]
+    RewriteRule ^player/[a-z0-9]+(?:-[a-z0-9]+)*$ player/index.html [L]
+</IfModule>

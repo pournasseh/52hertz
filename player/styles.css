@@ -1,0 +1,620 @@
+/* The player. One screen tall, and the screen does not scroll.
+
+   Two parts with a line between them. Above, on the station's own cover, the
+   station and what it is playing: the track's cover with its title, credit
+   and length beside it, followed by one quiet look ahead. Below, darker, the
+   controls. The info button slides a pane about the track
+   up over the whole lower part, as far as the line, and a chevron takes it
+   back down: the track stays in sight above it.
+
+   Every row uses the same measure. The upper part is deliberately compact;
+   the cover and words, rather than empty background, carry its visual weight.
+
+   There is no progress bar. A radio has no scrubber. The one moving line is in
+   the pane about the track, and it counts down: how long the track has left.
+
+   The accent colour comes from the publication, so every station keeps its own
+   identity without a fork of this file. */
+
+:root {
+  --accent: #6a7f8c;
+  --bg: #0d1013;
+  --deck: #07090b;              /* the lower part, darker than the room */
+  --surface: #161a1e;
+  --line: #22282e;
+  --text: #eceef0;
+  --muted: #8b949b;
+  --on-image: #ffffff;
+
+  /* The track's cover is sized off the window's height as much as its width:
+     it is what gives way first when the screen is short. */
+  --art: min(210px, 24svh, 31vw);
+  --btn: 66px;                  /* play */
+  --btn-2: 46px;                /* the two beside it */
+  --gutter: clamp(18px, 4vw, 44px);
+  --measure: 700px;
+  --ease: cubic-bezier(.32, .72, 0, 1);
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--deck);
+  color: var(--text);
+  font: 400 15px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* The typeface the station's language names for itself, loaded by app.js
+   from the panel's own assets/fonts/: nothing from outside. */
+:root[data-font] body { font-family: "Language", ui-sans-serif, "Segoe UI", Tahoma, sans-serif; }
+
+button { font: inherit; color: inherit; }
+
+.app {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: 58% 42%;
+  overflow: hidden;
+}
+
+/* ─── above: the station, and what it is playing ──────────────────────── */
+
+/* Its programme's cover, or its own; without either, its colour. */
+.stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: radial-gradient(120% 110% at 50% 0%, color-mix(in oklab, var(--accent) 36%, var(--bg)), var(--bg) 80%);
+  color: var(--on-image);
+}
+.stage-art {
+  position: absolute;
+  inset: 0;
+  background: center 40% / cover no-repeat;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+.stage-art[data-ready] { opacity: 1; }
+/* Dimmed enough, all over, for a cover and white words to stand on any
+   picture: darker at the top, under the station's name, and at the bottom,
+   down to the line. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / .5), rgb(0 0 0 / 0) 26%, rgb(0 0 0 / 0) 62%, rgb(0 0 0 / .55)),
+    rgb(0 0 0 / .32);
+}
+.stage > :not(.stage-art) { position: relative; z-index: 1; }
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(calc(100% - 2 * var(--gutter)), var(--measure));
+  margin-inline: auto;
+  padding: calc(18px + var(--safe-t)) 0 0;
+}
+.ident { min-width: 0; }
+.mast-actions { flex: none; display: flex; align-items: center; gap: 8px; }
+.install {
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid rgb(255 255 255 / .24);
+  border-radius: 999px;
+  background: rgb(0 0 0 / .28);
+  color: var(--on-image);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.install[hidden] { display: none; }
+.install svg {
+  width: 14px; height: 14px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.install:hover { border-color: var(--accent); color: color-mix(in oklab, var(--accent) 60%, #fff); }
+.install:focus-visible { outline: 2px solid var(--on-image); outline-offset: 2px; }
+.station-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.station-tagline {
+  margin: 1px 0 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: rgb(255 255 255 / .72);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.station-tagline:empty { display: none; }
+
+/* ON AIR is a word, not a lamp. It does not blink and it does not glow. */
+.onair {
+  flex: none;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / .32);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.onair-dot { width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / .45); }
+body[data-state="ready"] .onair-dot,
+body[data-state="playing"] .onair-dot { background: var(--accent); }
+body[data-state="offair"] .onair-dot,
+body[data-state="error"] .onair-dot { background: transparent; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .6); }
+
+/* What is playing: the cover and its words in one row, resting on the line. */
+.now {
+  align-self: end;
+  display: flex;
+  align-items: flex-end;
+  width: min(calc(100% - 2 * var(--gutter)), var(--measure));
+  margin-inline: auto;
+  justify-content: flex-start;
+  gap: clamp(16px, 3.2vw, 40px);
+  padding: 12px 0 clamp(16px, 2.4svh, 24px);
+  min-height: 0;
+}
+.sleeve {
+  flex: none;
+  width: var(--art);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--accent) 36%, var(--surface));
+  box-shadow: 0 18px 44px rgb(0 0 0 / .5);
+}
+.sleeve > * { grid-area: 1 / 1; }
+.sleeve-letter {
+  font-size: calc(var(--art) * .36);
+  font-weight: 650;
+  line-height: 1;
+  color: color-mix(in oklab, var(--accent) 45%, #fff);
+}
+.sleeve img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.sleeve img[data-ready] { opacity: 1; }
+
+.now-text { flex: 1 1 auto; min-width: 0; padding-bottom: 2px; }
+/* The words keep to the cover's side in either language, whatever language
+   each of them happens to be written in. */
+:root[dir="ltr"] .now-text > * { text-align: left; }
+:root[dir="rtl"] .now-text > * { text-align: right; }
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--accent) 55%, #fff);
+}
+.eyebrow:empty { display: none; }
+.title {
+  margin: 0;
+  font-size: clamp(19px, 2.9vw, 38px);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -.02em;
+  /* a long title wraps, and stops at three lines rather than pushing the
+     cover off the stage */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.credit { margin: 8px 0 0; font-size: clamp(13.5px, 1.3vw, 17px); line-height: 1.35; color: rgb(255 255 255 / .74); }
+.credit:empty { display: none; }
+.length { margin: 6px 0 0; font-size: 13px; color: rgb(255 255 255 / .56); font-variant-numeric: tabular-nums; }
+.length:empty { display: none; }
+
+/* One compact preview shares the same edges as the masthead and now playing. */
+.queue {
+  width: min(calc(100% - 2 * var(--gutter)), var(--measure));
+  margin: 0 auto clamp(15px, 2.2svh, 22px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  align-items: center;
+  min-height: 48px;
+  border-top: 1px solid rgb(255 255 255 / .1);
+  padding-top: 12px;
+}
+.queue .pane-title {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  color: rgb(255 255 255 / .58);
+  white-space: nowrap;
+}
+.queue .later { grid-column: 1; grid-row: 1; min-width: 0; }
+.queue .later li { padding: 8px 0; border: 0; }
+.queue .later-time,
+.queue .later-credit { color: rgb(255 255 255 / .58); }
+
+/* ─── below: the controls, what comes next, and the pane about the track ─ */
+
+/* Darker than the stage, with a line of the station's colour between. */
+.deck {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(110px, 6svh, 62px) var(--gutter) 0;
+  background: var(--deck);
+  border-top: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* Play in the middle column, so it keeps the optical centre whatever hangs off
+   its sides; the two smaller ones pushed out against it. */
+.controls {
+  flex: none;
+  width: min(100%, 320px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.play {
+  grid-column: 2;
+  position: relative;
+  width: var(--btn);
+  height: var(--btn);
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--deck);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+.play svg { width: 26px; height: 26px; fill: currentColor; }
+/* the play triangle sits on its own optical centre, not the geometric one */
+.play:not([aria-pressed="true"]) svg { margin-inline-start: 3px; }
+:root[dir="rtl"] .play:not([aria-pressed="true"]) svg { margin-inline-start: 0; margin-inline-end: -3px; }
+.play:hover { filter: brightness(1.08); }
+.play:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+.play:disabled { opacity: .35; cursor: default; filter: none; }
+
+/* Listening, it steps back to an outline: it has done its job, and should not
+   stay the brightest thing on a screen nobody is looking at any more. */
+.play[aria-pressed="true"] {
+  background: transparent;
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.play[aria-pressed="true"] svg { width: 19px; height: 19px; }
+
+/* Waiting for the first bytes: a ring round the button rather than a spinner
+   in its place, so what was just pressed does not vanish under the finger. */
+.play::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.play[data-busy]::before { opacity: 1; animation: turn 900ms linear infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+
+/* Bare icons: a ring belongs to the play button alone. */
+.ghost {
+  width: var(--btn-2);
+  height: var(--btn-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color .2s ease;
+}
+.controls > .ghost:first-child { justify-self: end; margin-inline-end: 30px; }
+.controls > .ghost:last-child { justify-self: start; margin-inline-start: 30px; }
+.ghost svg {
+  width: 22px; height: 22px;
+  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.ghost:hover, .ghost[aria-expanded="true"] { color: var(--accent); }
+.ghost:focus-visible { outline: 2px solid var(--text); outline-offset: -6px; border-radius: 50%; }
+.ghost:disabled { opacity: .3; cursor: default; color: var(--text); }
+
+.notice { flex: none; margin: 8px 0 0; min-height: 1.4em; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+/* The full-screen profile scrolls internally on short screens. */
+.about-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* About the track: a complete second face of the player. */
+.about {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--gutter) var(--safe-b);
+  background: var(--deck);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform .34s var(--ease), visibility 0s linear .34s;
+  isolation: isolate;
+}
+.app[data-about] .about { transform: none; visibility: visible; transition: transform .34s var(--ease), visibility 0s; }
+.about-backdrop {
+  display: none;
+}
+.about::after {
+  content: none;
+}
+.about-head {
+  flex: none;
+  width: min(100%, var(--measure));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(18px + var(--safe-t)) 0 14px;
+  border-bottom: 1px solid rgb(255 255 255 / .1);
+}
+.about-head .pane-title { margin: 0; }
+.about-body {
+  flex: 1;
+  min-height: 0;
+  width: min(100%, var(--measure));
+  padding: clamp(28px, 5svh, 50px) 0 calc(32px + var(--safe-b));
+}
+.about-summary {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 26px);
+}
+.about-art {
+  flex: none;
+  width: clamp(88px, 13vw, 112px);
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--accent) 34%, var(--surface));
+  box-shadow: 0 16px 40px rgb(0 0 0 / .4);
+}
+.about-art > * { grid-area: 1 / 1; }
+.about-art-letter {
+  font-size: clamp(34px, 6vw, 52px);
+  font-weight: 650;
+  line-height: 1;
+  color: color-mix(in oklab, var(--accent) 42%, #fff);
+}
+.about-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.about-art img[data-ready] { opacity: 1; }
+.about-identity { min-width: 0; }
+.about-kicker {
+  margin: 0 0 6px;
+  color: color-mix(in oklab, var(--accent) 60%, #fff);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.about-track-title {
+  margin: 0;
+  font-size: clamp(22px, 3.2vw, 34px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+}
+.about-track-credit {
+  margin: 7px 0 0;
+  color: rgb(255 255 255 / .7);
+  font-size: clamp(15px, 1.8vw, 19px);
+}
+.about-track-credit:empty { display: none; }
+.about-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.about-facts span + span::before {
+  content: "·";
+  margin-inline-end: 18px;
+  color: color-mix(in oklab, var(--accent) 60%, var(--muted));
+}
+.about-body > .countdown { margin: 24px 0 0; }
+.about-details {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid rgb(255 255 255 / .1);
+}
+
+/* a chevron, pointing the way the pane goes when it closes */
+.shut {
+  width: 44px; height: 36px;
+  margin-inline-end: -12px;
+  padding: 0; border: 0; background: none;
+  display: grid; place-items: center;
+  color: var(--text); opacity: .75; cursor: pointer;
+  transition: opacity .2s ease, color .2s ease;
+}
+.shut svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.shut:hover { opacity: 1; color: var(--accent); }
+.shut:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+
+.pane-title {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.later { list-style: none; margin: 0; padding: 0; }
+.later li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.later li:first-child { border-top: 0; }
+.later-time { flex: none; min-width: 58px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.later-art {
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--accent) 30%, var(--surface)) center / cover no-repeat;
+}
+.later-words { min-width: 0; display: grid; }
+.later-name, .later-credit { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.later-name { font-size: 14px; }
+.later-credit { font-size: 12.5px; color: var(--muted); }
+.later-credit:empty { display: none; }
+
+.countdown { display: flex; align-items: center; gap: 14px; margin: 10px 0 16px; }
+.countdown-track { flex: 1; position: relative; height: 2px; border-radius: 1px; background: var(--line); }
+.countdown-left {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--left, 100%);
+  border-radius: 1px;
+  background: var(--accent);
+  transition: width .9s linear;
+}
+.countdown-left[data-jump] { transition: none; }
+.countdown-time { flex: none; font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.about-description { margin: 0 0 14px; white-space: pre-line; font-size: 14.5px; line-height: 1.7; }
+.about-programme { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+.about-link { margin: 0; font-size: 13.5px; }
+.about-link a { color: var(--accent); text-decoration: none; }
+.about-link a:hover { text-decoration: underline; }
+.about-link:has(a[hidden]) { display: none; }
+
+/* ─── the small print ─────────────────────────────────────────────────── */
+
+.foot {
+  flex: none;
+  width: min(100%, var(--measure));
+  margin: auto auto 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  padding: 8px 0 calc(12px + var(--safe-b));
+  font-size: 11px;
+  color: var(--muted);
+}
+.foot[hidden] { display: none; }
+.colophon:empty { display: none; }
+.home { color: inherit; text-decoration: none; }
+.home:hover { color: var(--text); }
+.home[hidden] { display: none; }
+
+/* Said once, then gone: the link was copied. */
+.toast {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(22px + var(--safe-b));
+  z-index: 10;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--deck);
+  font-size: 13px;
+}
+.toast[hidden] { display: none; }
+
+/* ─── the width and height of the window ──────────────────────────────── */
+
+/* A phone: the same row, a smaller cover, and no eyebrow over the title. */
+@media (max-width: 559px) {
+  :root { --art: min(124px, 34vw, 20svh); }
+  .now { justify-content: flex-start; }
+  .eyebrow { display: none; }
+  .queue { column-gap: 16px; }
+  .queue .later-time { display: none; }
+  .queue .later li { gap: 10px; }
+}
+
+/* Give the three controls a calmer rhythm once there is room for it. */
+@media (min-width: 720px) {
+  .controls > .ghost:first-child { margin-inline-end: 45px; }
+  .controls > .ghost:last-child { margin-inline-start: 45px; }
+}
+
+/* A short window - a phone on its side - gives the stage a little more of the
+   height, and drops what can be spared. */
+@media (max-height: 620px) {
+  :root { --art: min(132px, 27vw, 25svh); }
+  .app { grid-template-rows: 62% 38%; }
+  .eyebrow, .notice { display: none; }
+  .queue { margin-bottom: 8px; min-height: 40px; }
+  .queue .later li { padding-block: 4px; }
+  .deck { padding-top: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-art, .sleeve img, .about, .countdown-left { transition: none; }
+}

@@ -1,0 +1,8 @@
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "no-referrer"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    <Files "sw.js">
+        Header set Cache-Control "no-cache, max-age=0, must-revalidate"
+    </Files>
+</IfModule>

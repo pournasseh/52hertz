@@ -1,0 +1,203 @@
+/* The programme editor: the day on a timeline first, then what it is made of.
+   Colours for the timeline are tokens so the canvas can read them in either
+   theme; a track keeps one of four quiet shades, events are warm, exact
+   events red. */
+
+.programme-studio {
+  --tl-1: #3f6f78; --tl-2: #4d5f80; --tl-3: #66597d; --tl-4: #52705e;
+  --tl-event: #c9a45e; --tl-exact: #c97f7a; --tl-ink: #ffffff;
+}
+@media (prefers-color-scheme: light) {
+  .programme-studio {
+    --tl-1: #8fb9bf; --tl-2: #a3b2cf; --tl-3: #b7abc9; --tl-4: #a9c5b2;
+    --tl-event: #d6aa55; --tl-exact: #d98f89; --tl-ink: #10151b;
+  }
+}
+
+/* ------------------------------------------------------------ page head */
+
+.studio-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.studio-actions [hidden] { display: none; }
+.studio-save { display: inline-flex; align-items: center; gap: 14px; margin-inline-start: 8px; }
+.page-sub .pill { margin-inline-start: 8px; vertical-align: 1px; }
+
+.studio-modes { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.studio-order { display: inline-flex; align-items: center; }
+.studio-modes button { border: 0; border-radius: 6px; padding: 5px 11px; background: none; color: var(--muted); font-size: 12.5px; }
+.studio-modes button[aria-pressed=true] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+
+/* ------------------------------------------------------------- timeline */
+
+/* A row clicked in the list scrolls the day into view, clear of the header. */
+.studio-day { padding: 14px 16px 12px; scroll-margin-top: calc(var(--header-h) + 12px); }
+.programme-tl-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.programme-tl-toolbar > strong { font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.programme-tl-legend { display: flex; gap: 12px; align-items: center; margin-inline-start: auto; color: var(--muted); font-size: 11.5px; }
+.programme-tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.programme-tl-legend i { width: 9px; height: 9px; border-radius: 2px; }
+.programme-tl-legend .legend-track { width: 14px; background: linear-gradient(90deg, var(--tl-1) 0 33%, var(--tl-2) 33% 66%, var(--tl-3) 66%); }
+.programme-tl-legend .legend-event { background: var(--tl-event); transform: rotate(45deg); }
+.programme-tl-legend .legend-exact { background: var(--tl-exact); transform: rotate(45deg); }
+
+.programme-tl { --tl-label: 68px; position: relative; direction: ltr; touch-action: none; user-select: none; }
+.programme-tl:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 7px; }
+
+.programme-minimap-wrap { position: relative; height: 28px; margin-left: var(--tl-label); margin-bottom: 3px; cursor: pointer; }
+#timeline-overview { display: block; width: 100%; height: 28px; border: 1px solid var(--line-soft); border-radius: 5px; background: var(--bg); }
+.programme-minimap-window {
+  position: absolute; top: 0; bottom: 0; min-width: 6px; pointer-events: none;
+  border: 1.5px solid var(--accent); border-radius: 5px;
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.programme-ruler { position: relative; height: 26px; margin-left: var(--tl-label); margin-top: 5px; border-bottom: 1px solid var(--line); overflow: hidden; }
+.programme-ruler .tick { position: absolute; bottom: 0; width: 1px; height: 5px; background: var(--line); }
+.programme-ruler .tick.is-major { height: 10px; background: var(--muted); opacity: .6; }
+.programme-ruler span { position: absolute; top: 1px; transform: translateX(-50%); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.programme-lane { display: flex; border-bottom: 1px solid var(--line-soft); }
+.programme-lane-label { width: var(--tl-label); flex: none; padding: 8px 8px 0 0; text-align: right; color: var(--muted); font-size: 11px; }
+.programme-lane canvas { display: block; flex: 1; min-width: 0; width: calc(100% - var(--tl-label)); cursor: grab; }
+.programme-lane canvas.is-panning { cursor: grabbing; }
+#timeline-planned { height: 46px; }
+#timeline-detail { height: 58px; }
+
+.timeline-now { position: absolute; z-index: 4; top: 36px; bottom: 0; width: 2px; margin-left: -1px; background: var(--bad); pointer-events: none; }
+.timeline-now span { position: absolute; top: 28px; left: 4px; padding: 0 3px; border-radius: 3px; background: var(--surface-2); color: var(--bad); font-size: 10px; }
+
+.programme-tl-tip {
+  position: absolute; z-index: 8; display: grid; gap: 2px; max-width: 280px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+  box-shadow: 0 8px 24px rgb(0 0 0 / .3); font-size: 12px; pointer-events: none;
+}
+.programme-tl-tip[hidden] { display: none; }
+.programme-tl-tip strong { font-size: 12.5px; }
+.programme-tl-tip span { color: var(--muted); }
+.programme-tl-tip b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.programme-tl-tip em { color: var(--warn); font-style: normal; }
+
+.day-selection { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; min-height: 42px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 12.5px; }
+.day-selection strong { color: var(--text); font-size: 13.5px; }
+.day-selection b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.day-selection .selection-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.day-selection .selection-kind { padding: 2px 7px; border-radius: 99px; background: color-mix(in oklab, var(--tl-event) 14%, transparent); color: var(--warn); font-size: 11px; }
+.day-selection em { color: var(--warn); font-style: normal; margin-inline-start: auto; }
+.day-selection .selection-clear { margin-inline-start: auto; font-size: 12.5px; }
+
+/* ---------------------------------------------------------- the tracks */
+
+.studio-sequence .card-head { align-items: flex-start; }
+.studio-sequence .card-head h2 { margin-bottom: 3px; }
+.studio-sequence .card-head p { margin: 0; }
+.sequence-columns, .sequence-row { display: grid; grid-template-columns: 24px 25px 30px 36px minmax(0, 1fr) 75px 64px 60px; gap: 9px; }
+/* Shuffled, there is no order to arrange: no grip, no place to insert. */
+.is-shuffle .sequence-columns, .is-shuffle .sequence-row { grid-template-columns: 25px 30px 36px minmax(0, 1fr) 75px 64px 60px; }
+.is-shuffle .col-grip { display: none; }
+.sequence-columns { padding: 0 10px 7px; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+/* A row is clicked to see where it airs on the timeline. */
+.sequence-row { position: relative; align-items: center; min-height: 56px; padding: 7px 10px; border-top: 1px solid var(--line-soft); background: var(--surface); cursor: pointer; }
+.sequence-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sequence-row:last-child { border-bottom: 1px solid var(--line-soft); }
+.sequence-row:hover { z-index: 2; background: var(--surface-2); }
+.sequence-row.is-dragging { opacity: .35; }
+.sequence-row.is-drop { box-shadow: inset 0 2px var(--accent); }
+.row-grip { border: 0 !important; background: none !important; padding: 0 !important; color: var(--muted); cursor: grab; }
+.row-number, .row-duration, .row-plays { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+.row-play { width: 28px; height: 28px; padding: 0; border-color: transparent; background: none; color: var(--muted); }
+.row-play:hover { color: var(--text); }
+.row-art { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 6px; background: var(--surface-2) center / cover; color: var(--muted); font-weight: 700; }
+.row-copy { display: grid; min-width: 0; }
+.row-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11.5px; }
+/* A title opens the track's sheet from the library. */
+.row-title {
+  display: block; max-width: 100%; padding: 0; border: 0; background: none; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start;
+  color: var(--text); font: inherit; font-size: 13.5px; font-weight: 550;
+}
+.row-title:hover { color: var(--accent); }
+/* What is selected on the timeline, marked faintly where it is listed. */
+.sequence-row.is-current, .event-row.is-current { background: color-mix(in oklab, var(--accent) 8%, var(--surface)); }
+.sequence-row.is-current:hover { background: color-mix(in oklab, var(--accent) 11%, var(--surface)); }
+.sequence-row .row-actions { display: flex; opacity: .35; transition: opacity .15s; }
+.sequence-row:hover .row-actions, .sequence-row:focus-within .row-actions { opacity: 1; }
+.sequence-row .row-actions button { width: 28px; height: 28px; padding: 0; border-color: transparent; background: none; }
+.sequence-row .row-actions button:last-child:hover { color: var(--bad); }
+.insert-here { position: absolute; z-index: 3; inset-inline-start: 50%; bottom: -10px; transform: translateX(-50%); height: 20px; padding: 0 8px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 10px; opacity: 0; }
+.sequence-row:hover .insert-here, .insert-here:focus { opacity: 1; }
+.sequence-foot { display: flex; justify-content: space-between; gap: 16px; margin-top: 12px; color: var(--muted); font-size: 12px; }
+.sequence-empty { display: grid; place-items: center; gap: 5px; padding: 44px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); }
+.sequence-empty strong { color: var(--text); }
+
+/* ---------------------------------------------------------------- events */
+
+.studio-events .card-head { margin-bottom: 6px; }
+.event-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid var(--line-soft); }
+.event-row > span:nth-child(2) { display: grid; min-width: 0; }
+.event-row small { color: var(--muted); font-size: 12px; }
+.event-time { font-variant-numeric: tabular-nums; color: var(--warn); font-size: 12.5px; }
+.event-actions { display: flex; }
+.event-actions button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: var(--muted); }
+.event-actions button:hover { color: var(--text); }
+.event-actions button:last-child:hover { color: var(--bad); }
+.studio-events .empty { margin: 0; }
+#event-dialog .field-grid { margin-bottom: 0; }
+
+/* ------------------------------------------------------------- settings */
+
+.studio-options { padding: 0 20px; }
+.studio-options summary { cursor: pointer; padding: 16px 0; font-weight: 600; font-size: 14px; }
+.studio-options-body { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 16px 20px; align-items: start; padding-bottom: 18px; }
+.studio-options-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 20px; max-width: 760px; }
+.studio-options-fields label { display: grid; gap: 5px; align-content: start; font-size: 12.5px; color: var(--muted); }
+.studio-options-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 0 18px; border-top: 1px solid var(--line-soft); }
+.studio-options-foot form { margin: 0; }
+.studio-options-foot button { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ------------------------------------------------ the add-tracks picker */
+
+.pick-dialog { width: min(660px, calc(100vw - 32px)); max-width: none; }
+.pick-dialog .modal-card { height: min(700px, calc(100dvh - 32px)); }
+/* The search stays put; only the list under it scrolls. */
+.pick-dialog .modal-body { overflow: hidden; gap: 0; padding: 14px var(--pad) 0; }
+.pick-dialog .sheet-head h2 { font-size: 16px; }
+.pick-search { max-width: none; flex: none; margin-bottom: 10px; }
+.pick-search .search { max-width: none; }
+.pick-dialog .pick-list { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0 calc(-1 * var(--pad)); padding: 4px calc(var(--pad) - 10px); border-top: 1px solid var(--line-soft); }
+.pick-row { display: grid; grid-template-columns: 18px 36px minmax(0, 1fr) auto auto 30px; gap: 12px; align-items: center; padding: 7px 10px; border-radius: 8px; cursor: pointer; }
+.pick-row:hover { background: var(--surface-2); }
+.pick-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pick-row.is-selected { background: color-mix(in oklab, var(--accent) 13%, transparent); }
+.pick-check { display: grid; place-items: center; width: 18px; height: 18px; border: 1.5px solid var(--line); border-radius: 50%; }
+.pick-row:hover .pick-check { border-color: var(--muted); }
+.pick-row.is-selected .pick-check { border-color: var(--accent); background: var(--accent); }
+.pick-row.is-selected .pick-check::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.pick-copy { display: grid; min-width: 0; }
+.pick-copy strong, .pick-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-copy strong { font-size: 13.5px; font-weight: 550; }
+.pick-copy small { color: var(--muted); font-size: 12px; }
+.pick-copy small:empty { display: none; }
+.pick-tags { display: flex; gap: 2px; max-width: 190px; overflow: hidden; }
+.pick-length { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pick-play { width: 30px; height: 30px; padding: 0; border-color: transparent; background: none; color: var(--muted); }
+.pick-play:hover { color: var(--text); }
+.pick-empty { padding: 36px 0; text-align: center; color: var(--muted); }
+.pick-count { margin-inline-end: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .studio-save { margin-inline-start: auto; }
+  .sequence-columns { display: none; }
+  .sequence-row { grid-template-columns: 20px 22px 30px minmax(0, 1fr) 55px 42px 50px; }
+  .is-shuffle .sequence-row { grid-template-columns: 22px 30px minmax(0, 1fr) 55px 42px 50px; }
+  .row-art { display: none; }
+  .studio-options-body { grid-template-columns: 96px minmax(0, 1fr); }
+  .sequence-row .row-actions { opacity: 1; }
+  .event-row { grid-template-columns: 1fr 30px; }
+  .event-time, .event-row > span:nth-child(2) { grid-column: 1; }
+  .event-row > button { grid-column: 2; grid-row: 1 / 3; }
+  .sequence-foot { flex-direction: column; gap: 3px; }
+  .programme-tl { --tl-label: 52px; }
+  .programme-tl-legend { display: none; }
+  .programme-lane-label { font-size: 9.5px; padding-right: 5px; }
+  .pick-row { grid-template-columns: 18px 36px minmax(0, 1fr) auto 30px; }
+  .pick-tags { display: none; }
+}

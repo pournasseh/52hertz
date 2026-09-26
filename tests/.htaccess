@@ -1,0 +1,10 @@
+# Panel internals. The document root on this host sits above the panel, so
+# these directories would otherwise be downloadable. They never need to be
+# reached over HTTP: PHP includes them from disk, and the tools are CLI.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
