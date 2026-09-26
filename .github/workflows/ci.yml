@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd
+          coverage: none
+      - run: node --test tests/*.test.mjs
+      - run: php tests/media-tools.test.php
+      - run: php tests/public.test.php
+      - run: find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - run: python tools/build-release.py
