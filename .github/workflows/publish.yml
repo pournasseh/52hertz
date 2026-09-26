@@ -1,0 +1,71 @@
+name: Publish verified 52Hertz release
+
+on:
+  push:
+    paths:
+      - ".transfer/READY"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, gd
+          coverage: none
+
+      - name: Reassemble and verify source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .transfer/part-* > /tmp/source.b64
+          base64 --decode /tmp/source.b64 > /tmp/source.zip
+          echo "82bb4f77d0720af735cea175157c29495ebc7f5c09239ef43d18ea3c3496009c  /tmp/source.zip" | sha256sum --check -
+
+      - name: Replace staging tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          unzip -q /tmp/source.zip -d .
+
+      - name: Verify candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.mjs
+          php tests/media-tools.test.php
+          php tests/public.test.php
+          find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+
+      - name: Commit source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish 52Hertz 1.0.0-rc.3"
+          git push
+
+      - name: Build release
+        run: python tools/build-release.py
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "v1.0.0-rc.3"             "dist/52hertz-1.0.0-rc.3.zip"             "dist/52hertz-1.0.0-rc.3.zip.sha256"             --target main             --title "52Hertz 1.0.0-rc.3"             --notes "Release candidate for the full self-hosted 52Hertz station manager."             --prerelease
