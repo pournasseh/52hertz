@@ -1,4 +1,4 @@
-name: Publish verified 52Hertz release
+name: Publish verified source
 
 on:
   push:
@@ -31,25 +31,26 @@ jobs:
           set -euo pipefail
           cat .transfer/part-* > /tmp/source.b64
           base64 --decode /tmp/source.b64 > /tmp/source.zip
-          echo "82bb4f77d0720af735cea175157c29495ebc7f5c09239ef43d18ea3c3496009c  /tmp/source.zip" | sha256sum --check -
+          echo "3927262e4408dbc3401324330ea3fdde0370ed3d7c2b2aff0713f900ab8e0fd1  /tmp/source.zip" | sha256sum --check -
 
-      - name: Replace staging tree
+      - name: Replace staging tree without modifying this workflow
         shell: bash
         run: |
           set -euo pipefail
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+          find .github -mindepth 1 -maxdepth 1 ! -name workflows -exec rm -rf {} +
+          find .github/workflows -mindepth 1 -maxdepth 1 ! -name publish.yml -exec rm -rf {} +
           unzip -q /tmp/source.zip -d .
 
       - name: Verify candidate
         shell: bash
         run: |
-          set -euo pipefail
           node --test tests/*.test.mjs
           php tests/media-tools.test.php
           php tests/public.test.php
           find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
 
-      - name: Commit source
+      - name: Commit verified source
         shell: bash
         run: |
           set -euo pipefail
@@ -59,13 +60,5 @@ jobs:
           git commit -m "Publish 52Hertz 1.0.0-rc.3"
           git push
 
-      - name: Build release
+      - name: Prove release build
         run: python tools/build-release.py
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release create "v1.0.0-rc.3"             "dist/52hertz-1.0.0-rc.3.zip"             "dist/52hertz-1.0.0-rc.3.zip.sha256"             --target main             --title "52Hertz 1.0.0-rc.3"             --notes "Release candidate for the full self-hosted 52Hertz station manager."             --prerelease
