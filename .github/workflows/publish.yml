@@ -45,6 +45,7 @@ jobs:
       - name: Verify candidate
         shell: bash
         run: |
+          set -euo pipefail
           node --test tests/*.test.mjs
           php tests/media-tools.test.php
           php tests/public.test.php
